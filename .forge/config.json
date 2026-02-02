@@ -1,0 +1,58 @@
+{
+  "project": {
+    "name": "rooted",
+    "repo": "",
+    "base_branch": "main",
+    "test_command": "npx playwright test",
+    "build_command": "npm run build",
+    "install_command": "npm install"
+  },
+  "github": {
+    "bug_labels": ["bug"],
+    "feature_labels": ["enhancement", "feature"],
+    "issue_state": "open",
+    "max_issues_per_session": 10,
+    "auto_merge": false,
+    "pr_base_branch": "main",
+    "pr_reviewers": []
+  },
+  "modes": {
+    "default": "bug",
+    "available": ["bug", "feature"],
+    "bug": {
+      "visual_verification": "always",
+      "max_files_warning": 5,
+      "commit_prefix": "fix:",
+      "scope": "minimal",
+      "refactoring": "discouraged"
+    },
+    "feature": {
+      "visual_verification": "conditional",
+      "max_files_warning": 20,
+      "commit_prefix": "feat:",
+      "scope": "complete",
+      "refactoring": "encouraged"
+    }
+  },
+  "worker": {
+    "max_iterations": 15,
+    "timeout_minutes": 20,
+    "allowed_tools": "Write,Read,Edit,Bash(git *),Bash(npm *),Bash(npx *),Bash(node *)",
+    "max_retries_per_issue": 2
+  },
+  "forge": {
+    "max_cycles": 20,
+    "worktree_base": ".worktrees",
+    "require_tests_pass": true,
+    "require_code_review": true,
+    "auto_cleanup_worktrees": true,
+    "stale_timeout_minutes": 30
+  },
+  "logging": {
+    "level": "verbose",
+    "format": "jsonl",
+    "forge_log": ".forge/logs/forge.jsonl",
+    "worker_log_dir": ".forge/logs/workers",
+    "summary_file": ".forge/logs/summary.md"
+  }
+}

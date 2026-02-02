@@ -1,0 +1,20 @@
+# Forge runtime files (created in target projects)
+.forge/state.json
+.forge/state.json.tmp
+.forge/state.json.backup
+.forge/logs/
+.forge/worker-prompt-active.md
+
+# Git worktrees
+.worktrees/
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

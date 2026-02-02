@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forge Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d1117;--card:#161b22;--border:#30363d;--hover:#1c2128;
+  --text:#e6edf3;--text2:#8b949e;--text3:#484f58;
+  --green:#3fb950;--green-bg:#23863622;
+  --yellow:#d29922;--yellow-bg:#9e6a0322;
+  --red:#f85149;--red-bg:#da363322;
+  --blue:#58a6ff;--blue-bg:#1f6feb22;
+  --purple:#bc8cff;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;padding:16px;min-height:100vh}
+
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:16px}
+.header-left{display:flex;align-items:center;gap:16px}
+.logo{font-size:18px;font-weight:600;letter-spacing:0.5px}
+.logo span{color:var(--blue)}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:500}
+.status-badge.running{background:var(--green-bg);color:var(--green);border:1px solid var(--green)}
+.status-badge.idle{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow)}
+.status-badge.error{background:var(--red-bg);color:var(--red);border:1px solid var(--red)}
+.status-badge.done{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue)}
+.mode-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.mode-badge.bug{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow)}
+.mode-badge.feature{background:#bc8cff22;color:var(--purple);border:1px solid var(--purple)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.status-badge.running .status-dot{animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.header-right{display:flex;align-items:center;gap:16px;color:var(--text2);font-size:13px}
+.header-right .mono{font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace;font-size:12px}
+
+/* Pipeline */
+.pipeline-section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px}
+.section-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2);margin-bottom:12px}
+.pipeline{display:flex;align-items:center;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+.pipe-step{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:72px}
+.pipe-box{width:64px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;border:2px solid var(--border);color:var(--text3);transition:all 0.3s}
+.pipe-box.done{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.pipe-box.active{border-color:var(--yellow);background:var(--yellow-bg);color:var(--yellow);animation:glow 2s ease-in-out infinite}
+.pipe-box.failed{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+@keyframes glow{0%,100%{box-shadow:0 0 4px var(--yellow-bg)}50%{box-shadow:0 0 12px var(--yellow)}}
+.pipe-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.3px}
+.pipe-box.done+.pipe-label,.pipe-box.active+.pipe-label{color:var(--text2)}
+.pipe-arrow{color:var(--text3);font-size:14px;margin:0 -2px;padding-bottom:18px}
+.current-info{display:flex;gap:24px;align-items:baseline;flex-wrap:wrap}
+.current-info .label{color:var(--text2);font-size:12px}
+.current-info .value{color:var(--text);font-weight:500;font-size:14px}
+.current-info .issue-title{color:var(--blue)}
+.current-info .elapsed{font-family:'SF Mono',Consolas,monospace;color:var(--yellow)}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+/* Issues panel */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px}
+.issue-list{list-style:none;display:flex;flex-direction:column;gap:4px}
+.issue-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;transition:background 0.2s}
+.issue-item:hover{background:var(--hover)}
+.issue-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.issue-dot.pending{border:2px solid var(--text3)}
+.issue-dot.active{background:var(--yellow);box-shadow:0 0 6px var(--yellow)}
+.issue-dot.done{background:var(--green)}
+.issue-dot.failed{background:var(--red)}
+.issue-dot.skipped{background:var(--text3)}
+.issue-num{font-family:'SF Mono',Consolas,monospace;color:var(--blue);font-size:13px;min-width:32px}
+.issue-title-text{flex:1;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.issue-meta{font-size:11px;color:var(--text2);white-space:nowrap}
+.issue-meta.success{color:var(--green)}
+.issue-meta.failure{color:var(--red)}
+
+/* Stats panel */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat-card{padding:12px;border-radius:6px;border:1px solid var(--border);background:var(--bg)}
+.stat-value{font-size:24px;font-weight:600;font-family:'SF Mono',Consolas,monospace}
+.stat-value.green{color:var(--green)}
+.stat-value.yellow{color:var(--yellow)}
+.stat-value.red{color:var(--red)}
+.stat-value.blue{color:var(--blue)}
+.stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.3px;margin-top:2px}
+
+/* Event log */
+.log-section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.log-container{max-height:320px;overflow-y:auto;font-family:'SF Mono',Consolas,monospace;font-size:12px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.log-container::-webkit-scrollbar{width:6px}
+.log-container::-webkit-scrollbar-track{background:transparent}
+.log-container::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.log-entry{display:flex;gap:12px;padding:4px 8px;border-radius:4px;transition:background 0.2s;align-items:flex-start}
+.log-entry:hover{background:var(--hover)}
+.log-entry.new{animation:fadeIn 0.5s ease-out}
+@keyframes fadeIn{from{background:var(--blue-bg);opacity:0.7}to{opacity:1}}
+.log-time{color:var(--text3);min-width:72px;flex-shrink:0}
+.log-event{min-width:140px;flex-shrink:0;font-weight:500}
+.log-event.fetch{color:var(--blue)}
+.log-event.select{color:var(--purple)}
+.log-event.workspace{color:var(--blue)}
+.log-event.worker{color:var(--yellow)}
+.log-event.review{color:var(--green)}
+.log-event.test{color:var(--green)}
+.log-event.visual{color:var(--purple)}
+.log-event.pr{color:var(--blue)}
+.log-event.error{color:var(--red)}
+.log-event.done{color:var(--green)}
+.log-event.failed{color:var(--red)}
+.log-detail{color:var(--text2);flex:1;word-break:break-word;white-space:pre-wrap;line-height:1.4}
+.auto-scroll-btn{font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer}
+.auto-scroll-btn.active{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+
+/* Screenshots */
+.screenshots-section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.screenshot-grid{display:flex;gap:12px;flex-wrap:wrap}
+.screenshot-thumb{border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer;transition:border-color 0.2s;max-width:320px}
+.screenshot-thumb:hover{border-color:var(--blue)}
+.screenshot-thumb img{width:100%;height:auto;display:block}
+.screenshot-label{padding:6px 8px;font-size:11px;color:var(--text2);background:var(--bg)}
+.no-screenshots{color:var(--text3);font-style:italic;padding:20px;text-align:center}
+
+/* Lightbox */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:1000;align-items:center;justify-content:center;cursor:pointer}
+.lightbox.active{display:flex}
+.lightbox img{max-width:95%;max-height:95%;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,0.5)}
+
+/* Footer */
+.footer{text-align:center;color:var(--text3);font-size:12px;padding:8px}
+.footer a{color:var(--blue);text-decoration:none}
+
+/* Spinner for loading */
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo"><span>FORGE</span></div>
+    <div id="statusBadge" class="status-badge idle">
+      <div class="status-dot"></div>
+      <span id="statusText">Waiting...</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div id="modeBadge" class="mode-badge bug">BUG</div>
+    <div>Session: <span id="sessionId" class="mono">--</span></div>
+    <div>Cycle: <span id="cycleInfo" class="mono">--</span></div>
+    <div>Uptime: <span id="uptime" class="mono">--</span></div>
+    <div><span class="spinner"></span> <span id="pollStatus">Polling</span></div>
+  </div>
+</div>
+
+<!-- Pipeline -->
+<div class="pipeline-section">
+  <div class="section-title">Pipeline Progress</div>
+  <div class="pipeline" id="pipeline"></div>
+  <div class="current-info" id="currentInfo">
+    <div><span class="label">Waiting for Forge to start...</span></div>
+  </div>
+</div>
+
+<!-- Grid: Issues + Stats -->
+<div class="grid">
+  <div class="panel">
+    <div class="section-title">Issues</div>
+    <ul class="issue-list" id="issueList">
+      <li class="issue-item"><span style="color:var(--text3)">No issues loaded yet</span></li>
+    </ul>
+  </div>
+  <div class="panel">
+    <div class="section-title">Statistics</div>
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="stat-value blue" id="statProcessed">0</div><div class="stat-label">Processed</div></div>
+      <div class="stat-card"><div class="stat-value green" id="statPRs">0</div><div class="stat-label">PRs Created</div></div>
+      <div class="stat-card"><div class="stat-value green" id="statTests">--</div><div class="stat-label">Test Pass Rate</div></div>
+      <div class="stat-card"><div class="stat-value" id="statVisual">--</div><div class="stat-label">Visual Pass</div></div>
+      <div class="stat-card"><div class="stat-value" id="statVisualSkipped" style="color:var(--text3)">0</div><div class="stat-label">Visual Skipped</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Event Log -->
+<div class="log-section">
+  <div class="log-header">
+    <div class="section-title" style="margin:0">Event Timeline</div>
+    <button class="auto-scroll-btn active" id="autoScrollBtn" onclick="toggleAutoScroll()">Auto-scroll</button>
+  </div>
+  <div class="log-container" id="logContainer">
+    <div style="color:var(--text3);padding:20px;text-align:center">Waiting for events...</div>
+  </div>
+</div>
+
+<!-- Screenshots -->
+<div class="screenshots-section">
+  <div class="section-title">Visual Verification Screenshots</div>
+  <div id="screenshotArea">
+    <div class="no-screenshots">No screenshots yet - visual verification pending</div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('active')">
+  <img id="lightboxImg" src="" alt="Screenshot">
+</div>
+
+<!-- Footer -->
+<div class="footer">Forge Dashboard &middot; Auto-refreshes every 3s</div>
+
+<script>
+// ---- State ----
+let autoScroll = true;
+let lastLogCount = 0;
+let startTime = null;
+let events = [];
+let state = {};
+let config = {};
+
+// ---- Pipeline Steps ----
+const STEPS = [
+  { id: 'fetch',     label: 'FETCH',    events: ['issues_fetched'] },
+  { id: 'select',    label: 'SELECT',   events: ['issue_selected'] },
+  { id: 'workspace', label: 'WKSPACE',  events: ['worktree_created'] },
+  { id: 'worker',    label: 'WORKER',   events: ['worker_launched', 'worker_completed'] },
+  { id: 'review',    label: 'REVIEW',   events: ['code_review'] },
+  { id: 'test',      label: 'TESTS',    events: ['tests_executed'] },
+  { id: 'visual',    label: 'VISUAL',   events: ['dev_server_started', 'visual_verification', 'dev_server_stopped'] },
+  { id: 'pr',        label: 'PR',       events: ['pr_created', 'pr_merged'] },
+  { id: 'cleanup',   label: 'CLEAN',    events: ['worktree_cleaned', 'issue_completed', 'issue_failed'] }
+];
+
+// Build pipeline HTML
+function initPipeline() {
+  const el = document.getElementById('pipeline');
+  el.innerHTML = STEPS.map((s, i) => {
+    const arrow = i < STEPS.length - 1 ? '<div class="pipe-arrow">&rarr;</div>' : '';
+    return `<div class="pipe-step"><div class="pipe-box" id="pipe-${s.id}">${s.label}</div><div class="pipe-label">${s.label}</div></div>${arrow}`;
+  }).join('');
+}
+
+// ---- Event Parsing ----
+function parseJSONL(text) {
+  if (!text || !text.trim()) return [];
+  return text.trim().split('\n').map(line => {
+    try { return JSON.parse(line.trim()); }
+    catch(e) { return null; }
+  }).filter(Boolean);
+}
+
+function getEventCategory(evt) {
+  const map = {
+    'issues_fetched': 'fetch', 'issue_selected': 'select',
+    'worktree_created': 'workspace',
+    'worker_launched': 'worker', 'worker_completed': 'worker',
+    'code_review': 'review',
+    'tests_executed': 'test',
+    'dev_server_started': 'visual', 'visual_verification': 'visual', 'dev_server_stopped': 'visual',
+    'pr_created': 'pr', 'pr_merged': 'pr',
+    'issue_completed': 'done', 'issue_failed': 'failed',
+    'worktree_cleaned': 'workspace',
+    'error': 'error', 'decision': 'select'
+  };
+  return map[evt] || 'fetch';
+}
+
+function getEventDetail(entry) {
+  const d = entry.data || {};
+  switch(entry.event) {
+    case 'issues_fetched': return `${d.count} issues found`;
+    case 'issue_selected': return `#${d.issue_number} - ${d.title || ''} (${d.reason || ''})`;
+    case 'worktree_created': return `${d.path} on branch ${d.branch}`;
+    case 'worker_launched': return `Issue #${d.issue_number}, attempt ${d.attempt}`;
+    case 'worker_completed': return `Exit ${d.exit_code}, ${d.duration_sec}s`;
+    case 'code_review': return `${d.verdict} - ${d.files_changed} files, +${d.lines_added}/-${d.lines_removed} ${d.assessment ? '- ' + d.assessment.substring(0, 100) : ''}`;
+    case 'tests_executed': return `${d.passed ? 'PASS' : 'FAIL'} - ${d.test_count} tests, ${d.failures} failures (${d.duration_sec}s)`;
+    case 'dev_server_started': return `${d.url} (PID: ${d.pid || '?'})`;
+    case 'visual_verification': return `${d.verdict} - ${d.visual_assessment || ''}`;
+    case 'dev_server_stopped': return `Server stopped for #${d.issue_number}`;
+    case 'pr_created': return `PR #${d.pr_number} - <a href="${d.pr_url}" target="_blank" style="color:var(--blue);text-decoration:underline">${d.pr_url}</a>`;
+    case 'pr_merged': return `PR #${d.pr_number} merged`;
+    case 'issue_completed': return `#${d.issue_number} done in ${d.total_attempts} attempt(s), ${d.total_duration_sec}s`;
+    case 'issue_failed': return `#${d.issue_number} FAILED - ${d.reason}`;
+    case 'issue_skipped': return `#${d.issue_number} skipped - ${d.reason}`;
+    case 'worktree_cleaned': return `Removed ${d.path}`;
+    case 'error': return d.error_message || JSON.stringify(d);
+    case 'decision': return `${d.decision} - ${d.reasoning || ''}`;
+    default: return JSON.stringify(d).substring(0, 120);
+  }
+}
+
+function formatTime(ts) {
+  if (!ts) return '--:--:--';
+  const d = new Date(ts);
+  return d.toLocaleTimeString('en-GB', { hour12: false });
+}
+
+function formatDuration(seconds) {
+  if (!seconds && seconds !== 0) return '--';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  if (m > 60) {
+    const h = Math.floor(m / 60);
+    return `${h}h ${m % 60}m`;
+  }
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+// ---- Pipeline Update ----
+function updatePipeline(events) {
+  // Reset all
+  STEPS.forEach(s => {
+    const el = document.getElementById('pipe-' + s.id);
+    el.className = 'pipe-box';
+  });
+
+  if (events.length === 0) return;
+
+  // Get current cycle events
+  const currentCycle = events[events.length - 1].cycle || 1;
+  const cycleEvents = events.filter(e => e.cycle === currentCycle);
+  const eventNames = cycleEvents.map(e => e.event);
+
+  // Determine completed and active steps
+  let lastCompletedStep = -1;
+  let hasFailed = false;
+
+  STEPS.forEach((step, i) => {
+    const completionEvents = {
+      'fetch': ['issues_fetched'],
+      'select': ['issue_selected'],
+      'workspace': ['worktree_created'],
+      'worker': ['worker_completed'],
+      'review': ['code_review'],
+      'test': ['tests_executed'],
+      'visual': ['visual_verification'],
+      'pr': ['pr_created'],
+      'cleanup': ['issue_completed', 'issue_failed', 'worktree_cleaned']
+    };
+
+    const startEvents = {
+      'worker': ['worker_launched'],
+      'visual': ['dev_server_started'],
+    };
+
+    const isComplete = (completionEvents[step.id] || []).some(e => eventNames.includes(e));
+    const isStarted = (startEvents[step.id] || []).some(e => eventNames.includes(e));
+
+    const el = document.getElementById('pipe-' + step.id);
+
+    if (eventNames.includes('issue_failed') && step.id === 'cleanup') {
+      el.classList.add('failed');
+      hasFailed = true;
+    } else if (isComplete) {
+      el.classList.add('done');
+      lastCompletedStep = i;
+    } else if (isStarted) {
+      el.classList.add('active');
+    }
+  });
+
+  // If a step is complete but next isn't started, mark next as active
+  if (lastCompletedStep >= 0 && lastCompletedStep < STEPS.length - 1) {
+    const nextEl = document.getElementById('pipe-' + STEPS[lastCompletedStep + 1].id);
+    if (!nextEl.classList.contains('done') && !nextEl.classList.contains('active') && !nextEl.classList.contains('failed')) {
+      // Only if last event isn't a terminal event
+      const lastEvent = cycleEvents[cycleEvents.length - 1].event;
+      if (!['issue_completed', 'issue_failed', 'issue_skipped'].includes(lastEvent)) {
+        nextEl.classList.add('active');
+      }
+    }
+  }
+}
+
+// ---- Current Info ----
+function updateCurrentInfo(events, state) {
+  const el = document.getElementById('currentInfo');
+  if (events.length === 0) {
+    el.innerHTML = '<div><span class="label">Waiting for Forge to start...</span></div>';
+    return;
+  }
+
+  const last = events[events.length - 1];
+  const currentIssue = state.issues && state.issues.in_progress;
+
+  let stepLabel = last.event.replace(/_/g, ' ');
+  let issueInfo = '';
+  let elapsed = '';
+
+  if (currentIssue) {
+    issueInfo = `<div><span class="label">Issue:</span> <span class="value"><span class="issue-title">#${currentIssue.number}</span> - ${currentIssue.title || ''}</span></div>`;
+    if (currentIssue.started_at) {
+      const secs = (Date.now() - new Date(currentIssue.started_at).getTime()) / 1000;
+      elapsed = `<div><span class="label">Elapsed:</span> <span class="value elapsed">${formatDuration(secs)}</span></div>`;
+    }
+  }
+
+  // Determine human-readable status
+  const statusMap = {
+    'issues_fetched': 'Fetched issues from GitHub',
+    'issue_selected': 'Selected next issue to fix',
+    'worktree_created': 'Created isolated workspace',
+    'worker_launched': 'Worker is coding the fix...',
+    'worker_completed': 'Worker finished, reviewing code...',
+    'code_review': 'Code review complete',
+    'tests_executed': 'Test suite complete',
+    'dev_server_started': 'Dev server running, verifying visually...',
+    'visual_verification': 'Visual verification complete',
+    'dev_server_stopped': 'Cleaned up dev server',
+    'pr_created': 'Pull request created',
+    'pr_merged': 'Pull request merged',
+    'issue_completed': 'Issue completed!',
+    'issue_failed': 'Issue failed',
+    'worktree_cleaned': 'Workspace cleaned up'
+  };
+
+  const status = statusMap[last.event] || stepLabel;
+
+  el.innerHTML = `
+    <div><span class="label">Status:</span> <span class="value">${status}</span></div>
+    ${issueInfo}
+    ${elapsed}
+  `;
+}
+
+// ---- Issues List ----
+function updateIssues(events, state) {
+  const el = document.getElementById('issueList');
+
+  // Build issue map from state
+  const issues = new Map();
+
+  // From fetched
+  if (state.issues && state.issues.fetched) {
+    state.issues.fetched.forEach(i => {
+      issues.set(i.number, { number: i.number, title: i.title, status: 'pending', meta: '' });
+    });
+  }
+
+  // Also extract from events if state isn't populated
+  events.forEach(e => {
+    if (e.event === 'issue_selected' && e.data) {
+      issues.set(e.data.issue_number, {
+        number: e.data.issue_number,
+        title: e.data.title || issues.get(e.data.issue_number)?.title || '',
+        status: 'pending',
+        meta: ''
+      });
+    }
+  });
+
+  // From completed
+  if (state.issues && state.issues.completed) {
+    state.issues.completed.forEach(i => {
+      issues.set(i.number, { number: i.number, title: i.title, status: 'done', meta: i.pr_url ? `PR` : 'Done', pr_url: i.pr_url });
+    });
+  }
+
+  // From failed
+  if (state.issues && state.issues.failed) {
+    state.issues.failed.forEach(i => {
+      issues.set(i.number, { number: i.number, title: i.title, status: 'failed', meta: i.reason || 'Failed' });
+    });
+  }
+
+  // From skipped
+  if (state.issues && state.issues.skipped) {
+    state.issues.skipped.forEach(i => {
+      issues.set(i.number, { number: i.number, title: i.title, status: 'skipped', meta: 'Skipped' });
+    });
+  }
+
+  // In progress
+  if (state.issues && state.issues.in_progress) {
+    const ip = state.issues.in_progress;
+    const secs = ip.started_at ? (Date.now() - new Date(ip.started_at).getTime()) / 1000 : 0;
+    issues.set(ip.number, { number: ip.number, title: ip.title, status: 'active', meta: formatDuration(secs) });
+  }
+
+  if (issues.size === 0) {
+    el.innerHTML = '<li class="issue-item"><span style="color:var(--text3)">No issues loaded yet</span></li>';
+    return;
+  }
+
+  // Sort: active first, then pending by number, then done, then failed
+  const order = { active: 0, pending: 1, done: 2, failed: 3, skipped: 4 };
+  const sorted = [...issues.values()].sort((a, b) => {
+    const oa = order[a.status] ?? 5;
+    const ob = order[b.status] ?? 5;
+    return oa !== ob ? oa - ob : a.number - b.number;
+  });
+
+  el.innerHTML = sorted.map(i => {
+    const metaClass = i.status === 'done' ? 'success' : i.status === 'failed' ? 'failure' : '';
+    const prLink = i.pr_url ? `<a href="${i.pr_url}" target="_blank" style="color:var(--green);text-decoration:none">${i.meta}</a>` : i.meta;
+    const repoUrl = config.project && config.project.repo ? `https://github.com/${config.project.repo}` : '';
+    const issueLink = repoUrl ? `<a href="${repoUrl}/issues/${i.number}" target="_blank" style="color:var(--blue);text-decoration:none">#${i.number}</a>` : `#${i.number}`;
+    return `<li class="issue-item">
+      <div class="issue-dot ${i.status}"></div>
+      <span class="issue-num">${issueLink}</span>
+      <span class="issue-title-text">${i.title || 'Loading...'}</span>
+      <span class="issue-meta ${metaClass}">${prLink}</span>
+    </li>`;
+  }).join('');
+}
+
+// ---- Stats ----
+function updateStats(state) {
+  const stats = state.stats || {};
+
+  document.getElementById('statProcessed').textContent =
+    `${stats.total_issues_processed || 0}`;
+
+  document.getElementById('statPRs').textContent =
+    `${stats.total_prs_created || 0}`;
+
+  if (stats.total_test_runs > 0) {
+    const rate = Math.round((stats.total_test_passes / stats.total_test_runs) * 100);
+    document.getElementById('statTests').textContent = `${rate}%`;
+    document.getElementById('statTests').className = `stat-value ${rate >= 80 ? 'green' : rate >= 50 ? 'yellow' : 'red'}`;
+  }
+
+  if (stats.total_visual_verifications > 0) {
+    const vp = stats.total_visual_passes || 0;
+    document.getElementById('statVisual').textContent = `${vp}/${stats.total_visual_verifications}`;
+    document.getElementById('statVisual').className = `stat-value ${vp === stats.total_visual_verifications ? 'green' : 'yellow'}`;
+  }
+
+  const skipped = stats.total_visual_skipped || 0;
+  document.getElementById('statVisualSkipped').textContent = `${skipped}`;
+}
+
+// ---- Event Log ----
+function updateLog(newEvents) {
+  const container = document.getElementById('logContainer');
+  const isNew = newEvents.length > lastLogCount;
+
+  if (newEvents.length === 0) return;
+
+  // Only render if changed
+  if (isNew) {
+    // Clear placeholder
+    if (lastLogCount === 0) {
+      container.innerHTML = '';
+    }
+
+    // Add only new entries
+    for (let i = lastLogCount; i < newEvents.length; i++) {
+      const e = newEvents[i];
+      const cat = getEventCategory(e.event);
+      const div = document.createElement('div');
+      div.className = `log-entry${i >= lastLogCount ? ' new' : ''}`;
+      div.innerHTML = `
+        <span class="log-time">${formatTime(e.timestamp)}</span>
+        <span class="log-event ${cat}">${e.event}</span>
+        <span class="log-detail">${getEventDetail(e)}</span>
+      `;
+      container.appendChild(div);
+    }
+
+    lastLogCount = newEvents.length;
+
+    if (autoScroll) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+}
+
+// ---- Screenshots ----
+function updateScreenshots(events) {
+  const area = document.getElementById('screenshotArea');
+
+  // Find visual_verification events with screenshot paths
+  const verifications = events.filter(e => e.event === 'visual_verification' && e.data && e.data.screenshot_paths);
+
+  if (verifications.length === 0) {
+    area.innerHTML = '<div class="no-screenshots">No screenshots yet - visual verification pending</div>';
+    return;
+  }
+
+  let html = '';
+  verifications.forEach(v => {
+    const verdict = v.data.verdict || 'UNKNOWN';
+    const assessment = v.data.visual_assessment || '';
+    const issueNum = v.data.issue_number;
+
+    html += `<div style="margin-bottom:12px"><strong style="color:${verdict === 'VERIFIED' ? 'var(--green)' : 'var(--red)'}">${verdict}</strong> - Issue #${issueNum}: ${assessment}</div>`;
+    html += '<div class="screenshot-grid">';
+
+    (v.data.screenshot_paths || []).forEach(p => {
+      const url = `/api/screenshots/.worktrees/issue-${issueNum}/${p}`;
+      const label = p.split('/').pop();
+      html += `<div class="screenshot-thumb" onclick="openLightbox('${url}')">
+        <img src="${url}" alt="${label}" onerror="this.parentElement.innerHTML='<div class=\\'screenshot-label\\'>Image not available</div>'" loading="lazy">
+        <div class="screenshot-label">${label}</div>
+      </div>`;
+    });
+
+    html += '</div>';
+  });
+
+  area.innerHTML = html;
+}
+
+// ---- Header ----
+function updateHeader(events, state) {
+  const badge = document.getElementById('statusBadge');
+  const statusText = document.getElementById('statusText');
+  const sessionEl = document.getElementById('sessionId');
+  const cycleEl = document.getElementById('cycleInfo');
+  const uptimeEl = document.getElementById('uptime');
+  const modeBadge = document.getElementById('modeBadge');
+
+  // Mode
+  const mode = state.mode || 'bug';
+  modeBadge.textContent = mode.toUpperCase();
+  modeBadge.className = `mode-badge ${mode}`;
+
+  // Session ID
+  const sid = state.session_id || (events.length > 0 ? events[0].session_id : null);
+  sessionEl.textContent = sid ? sid.substring(0, 15) : '--';
+
+  // Cycle
+  const cycle = state.current_cycle || (events.length > 0 ? events[events.length - 1].cycle : 0);
+  cycleEl.textContent = cycle || '--';
+
+  // Uptime
+  if (events.length > 0 && !startTime) {
+    startTime = new Date(events[0].timestamp);
+  }
+  if (startTime) {
+    const secs = (Date.now() - startTime.getTime()) / 1000;
+    uptimeEl.textContent = formatDuration(secs);
+  }
+
+  // Status
+  if (events.length === 0) {
+    badge.className = 'status-badge idle';
+    statusText.textContent = 'Waiting...';
+  } else {
+    const last = events[events.length - 1];
+    const terminals = ['issue_completed', 'issue_failed', 'issue_skipped'];
+
+    if (terminals.includes(last.event)) {
+      if (last.event === 'issue_completed') {
+        badge.className = 'status-badge done';
+        statusText.textContent = 'Cycle Complete';
+      } else if (last.event === 'issue_failed') {
+        badge.className = 'status-badge error';
+        statusText.textContent = 'Issue Failed';
+      } else {
+        badge.className = 'status-badge idle';
+        statusText.textContent = 'Skipped';
+      }
+    } else if (last.event === 'error') {
+      badge.className = 'status-badge error';
+      statusText.textContent = 'Error';
+    } else {
+      badge.className = 'status-badge running';
+      statusText.textContent = 'Running';
+    }
+  }
+}
+
+// ---- Lightbox ----
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('active');
+}
+
+// ---- Auto-scroll toggle ----
+function toggleAutoScroll() {
+  autoScroll = !autoScroll;
+  const btn = document.getElementById('autoScrollBtn');
+  btn.classList.toggle('active', autoScroll);
+}
+
+// ---- Polling ----
+async function poll() {
+  try {
+    const [logsRes, stateRes, configRes] = await Promise.all([
+      fetch('/api/logs').then(r => r.text()).catch(() => ''),
+      fetch('/api/state').then(r => r.json()).catch(() => ({})),
+      fetch('/api/config').then(r => r.json()).catch(() => ({}))
+    ]);
+
+    events = parseJSONL(logsRes);
+    state = stateRes;
+    config = configRes;
+
+    updateHeader(events, state);
+    updatePipeline(events);
+    updateCurrentInfo(events, state);
+    updateIssues(events, state);
+    updateStats(state);
+    updateLog(events);
+    updateScreenshots(events);
+
+    document.getElementById('pollStatus').textContent = 'Connected';
+  } catch(e) {
+    document.getElementById('pollStatus').textContent = 'Disconnected';
+    console.error('Poll error:', e);
+  }
+}
+
+// ---- Init ----
+initPipeline();
+poll();
+setInterval(poll, 3000);
+
+// Update elapsed time every second
+setInterval(() => {
+  if (state.issues && state.issues.in_progress && state.issues.in_progress.started_at) {
+    updateCurrentInfo(events, state);
+  }
+  if (startTime) {
+    document.getElementById('uptime').textContent = formatDuration((Date.now() - startTime.getTime()) / 1000);
+  }
+}, 1000);
+</script>
+</body>
+</html>
