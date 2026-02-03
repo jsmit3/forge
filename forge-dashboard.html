@@ -221,6 +221,7 @@ let startTime = null;
 let events = [];
 let state = {};
 let config = {};
+let currentSessionId = null;
 
 // ---- Pipeline Steps ----
 const STEPS = [
@@ -692,6 +693,16 @@ async function poll() {
     events = parseJSONL(logsRes);
     state = stateRes;
     config = configRes;
+
+    // Detect session change and reset cached state
+    const newSessionId = state.session_id || (events.length > 0 ? events[0].session_id : null);
+    if (newSessionId && newSessionId !== currentSessionId) {
+      console.log('Session changed:', currentSessionId, '->', newSessionId);
+      currentSessionId = newSessionId;
+      startTime = null;
+      lastLogCount = 0;
+      document.getElementById('logContainer').innerHTML = '';
+    }
 
     updateHeader(events, state);
     updatePipeline(events);
