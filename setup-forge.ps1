@@ -16,7 +16,7 @@
     Test command to run (default: "npx playwright test")
 
 .PARAMETER BaseBranch
-    Base branch name (default: "main")
+    Base branch name (auto-detected from remote, defaults to "main")
 
 .EXAMPLE
     .\setup-forge.ps1
@@ -90,6 +90,27 @@ if (-not $Repo) {
         Write-Host "     [OK] Detected repo: $Repo" -ForegroundColor Green
     } else {
         Write-Host "     [WARN] Could not detect repo. Provide with -Repo" -ForegroundColor Yellow
+    }
+}
+
+# Auto-detect base branch if using default
+if ($BaseBranch -eq "main") {
+    # Try to detect from git remote
+    $defaultBranch = git symbolic-ref refs/remotes/origin/HEAD 2>$null
+    if ($defaultBranch -match "refs/remotes/origin/(.+)$") {
+        $detectedBranch = $Matches[1]
+        if ($detectedBranch -ne "main") {
+            $BaseBranch = $detectedBranch
+            Write-Host "     [OK] Detected base branch: $BaseBranch" -ForegroundColor Green
+        }
+    } else {
+        # Fallback: check if master exists but main doesn't
+        $hasMaster = git show-ref --verify --quiet refs/remotes/origin/master 2>$null; $hasMasterResult = $LASTEXITCODE -eq 0
+        $hasMain = git show-ref --verify --quiet refs/remotes/origin/main 2>$null; $hasMainResult = $LASTEXITCODE -eq 0
+        if ($hasMasterResult -and -not $hasMainResult) {
+            $BaseBranch = "master"
+            Write-Host "     [OK] Detected base branch: master (no main branch found)" -ForegroundColor Green
+        }
     }
 }
 
