@@ -594,9 +594,18 @@ function updateScreenshots(events) {
     html += '<div class="screenshot-grid">';
 
     (v.data.screenshot_paths || []).forEach(p => {
-      // Screenshots are now stored in .forge/screenshots/issue-<N>/
-      // The path in the log may be relative or absolute
-      const url = p.startsWith('.forge/') ? `/api/screenshots/${p}` : `/api/screenshots/.forge/screenshots/issue-${issueNum}/${p.split('/').pop()}`;
+      // Handle both old paths (verification-screenshots/...) and new paths (.forge/screenshots/...)
+      let url;
+      if (p.startsWith('.forge/')) {
+        // New format: .forge/screenshots/issue-42/01-full-page.png
+        url = `/api/screenshots/${p}`;
+      } else if (p.startsWith('verification-screenshots/')) {
+        // Old format: verification-screenshots/01-full-page.png (in worktree)
+        url = `/api/screenshots/.worktrees/issue-${issueNum}/${p}`;
+      } else {
+        // Just filename: 01-full-page.png - try new location first
+        url = `/api/screenshots/.forge/screenshots/issue-${issueNum}/${p}`;
+      }
       const label = p.split('/').pop();
       html += `<div class="screenshot-thumb" onclick="openLightbox('${url}')">
         <img src="${url}" alt="${label}" onerror="this.parentElement.innerHTML='<div class=\\'screenshot-label\\'>Image not available</div>'" loading="lazy">
