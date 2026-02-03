@@ -6,6 +6,66 @@ Supports two modes:
 - **Bug mode** - Minimal, focused fixes for bug issues
 - **Feature mode** - Complete implementations for enhancement issues
 
+## Installation
+
+Forge is installed **from this repository into your target project**. You don't clone Forge into your project — you run a setup script that copies the necessary files.
+
+### Step 1: Clone this repo somewhere central
+
+```powershell
+git clone https://github.com/youruser/ralph-supervisor.git C:\tools\ralph-supervisor
+```
+
+### Step 2: Run setup in your project
+
+From your target project directory (or point `-ProjectPath` at it):
+
+```powershell
+# Option A: cd into your project first
+cd C:\path\to\your\project
+C:\tools\ralph-supervisor\setup-forge.ps1 -TestCommand "npm test"
+
+# Option B: run from anywhere with -ProjectPath
+C:\tools\ralph-supervisor\setup-forge.ps1 -ProjectPath "C:\path\to\your\project" -TestCommand "npm test"
+```
+
+The setup script will:
+- ✅ Check prerequisites (git, gh CLI, claude CLI)
+- ✅ Auto-detect your GitHub repo from the git remote
+- ✅ Create `.forge/` folder with config and instructions
+- ✅ Create `.worktrees/` folder for isolated branches
+- ✅ Update your `.gitignore` automatically
+
+### Step 3: Copy the launcher scripts
+
+After setup completes, copy the scripts you need into your project:
+
+```powershell
+Copy-Item C:\tools\ralph-supervisor\launch-forge.ps1 .
+Copy-Item C:\tools\ralph-supervisor\forge-analyze.ps1 .
+Copy-Item C:\tools\ralph-supervisor\forge-status.ps1 .        # optional
+Copy-Item C:\tools\ralph-supervisor\forge-dashboard-server.ps1 .  # optional
+Copy-Item C:\tools\ralph-supervisor\forge-dashboard.html .        # optional
+```
+
+### Step 4: Launch Forge
+
+```powershell
+.\launch-forge.ps1
+```
+
+### Step 5: Start the loop
+
+Once Claude Code opens, paste the command printed by the launcher:
+
+```
+/ralph-loop:ralph-loop "<prompt>" --max-iterations 10 --completion-promise "FORGE_COMPLETE"
+```
+
+The `/ralph-loop:ralph-loop` command uses the Anthropic ralph-loop plugin to handle cycling automatically.
+
+---
+
 ## Architecture
 
 ```
@@ -54,38 +114,24 @@ gh auth login
 
 ## Quick Start
 
-### 1. Clone this repo
+See **Installation** above for detailed steps. Here's the TL;DR:
 
 ```powershell
-git clone <this-repo> forge
-```
-
-### 2. Run setup in your project
-
-```powershell
+# 1. Setup in your project
 cd C:\path\to\your\project
+C:\tools\ralph-supervisor\setup-forge.ps1 -TestCommand "npm test"
 
-# Run the setup wizard
-C:\path\to\forge\setup-forge.ps1 -Repo "owner/repo"
-```
+# 2. Copy launcher
+Copy-Item C:\tools\ralph-supervisor\launch-forge.ps1 .
 
-Or with explicit options:
-```powershell
-.\setup-forge.ps1 `
-    -Repo "youruser/project" `
-    -TestCommand "npx playwright test" `
-    -BaseBranch "main" `
-    -DefaultMode "bug" `
-    -AutoMerge
-```
-
-### 3. Launch Forge
-
-```powershell
+# 3. Launch
 .\launch-forge.ps1
+
+# 4. Paste the /ralph-loop:ralph-loop command shown in the terminal
 ```
 
-With options:
+### Launch options
+
 ```powershell
 # Limit to 5 cycles
 .\launch-forge.ps1 -MaxCycles 5
@@ -95,6 +141,18 @@ With options:
 
 # Clean start (wipe state/logs)
 .\launch-forge.ps1 -Clean
+```
+
+### Setup options
+
+```powershell
+.\setup-forge.ps1 `
+    -ProjectPath "C:\path\to\project" `
+    -Repo "youruser/project" `
+    -TestCommand "npx playwright test" `
+    -BaseBranch "main" `
+    -DefaultMode "bug" `
+    -AutoMerge
 ```
 
 ### 4. Monitor progress

@@ -23,7 +23,7 @@ WORKER (Claude Code)          -- heads-down coder in isolated worktree
                                  doesn't know it's supervised
 ```
 
-Forge runs inside a **forge-loop** (a Claude Code plugin). Each iteration processes one issue, then exits. The loop re-feeds the prompt for the next iteration until all issues are done or `<promise>FORGE_COMPLETE</promise>` is output.
+Forge runs inside a **ralph-loop** (a Claude Code plugin). Each iteration processes one issue, then exits. The loop re-feeds the prompt for the next iteration until all issues are done or `<promise>FORGE_COMPLETE</promise>` is output.
 
 ## Commands
 
@@ -44,7 +44,7 @@ C:\tools\forge\setup-forge.ps1 -Repo "owner/repo" -DefaultMode feature
 .\launch-forge.ps1 -Clean             # Fresh session (wipes state/logs)
 ```
 
-Once inside Claude Code, paste the `/forge-loop:forge-loop` command printed by the launcher.
+Once inside Claude Code, paste the `/ralph-loop:ralph-loop` command printed by the launcher.
 
 ### Monitor progress
 ```powershell

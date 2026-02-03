@@ -1,19 +1,19 @@
 <#
 .SYNOPSIS
     Forge Launcher — prepares state, then opens Claude Code
-    for you to start the forge-loop.
+    for you to start the ralph-loop.
 
 .DESCRIPTION
     This script:
     1. Checks prerequisites (claude, gh, git, config files)
     2. Initializes session state (state.json, log dirs)
     3. Opens Claude Code interactively
-    
-    Once inside Claude Code, paste the /forge-loop command that this
-    script prints. The forge-loop plugin handles cycling automatically.
+
+    Once inside Claude Code, paste the /ralph-loop command that this
+    script prints. The ralph-loop plugin handles cycling automatically.
 
 .PARAMETER MaxCycles
-    Maximum iterations for the forge-loop. Default: 10
+    Maximum iterations for the ralph-loop. Default: 10
 
 .PARAMETER Clean
     If set, wipes state.json and logs for a fresh session.
@@ -247,7 +247,7 @@ Write-Host ""
 $modeDesc = if ($effectiveMode -eq "bug") { "fix one bug" } else { "implement one feature" }
 $prompt = "You are the FORGE agent. Session: $sessionId. Mode: $effectiveMode. Read .forge/CLAUDE.md for your full instructions. Read .forge/config.json for configuration. Read .forge/state.json for current state. Execute ONE forge cycle ($modeDesc), then exit. When ALL issues are done, output <promise>FORGE_COMPLETE</promise>"
 
-Write-Host "/forge-loop:forge-loop `"$prompt`" --max-iterations $MaxCycles --completion-promise `"FORGE_COMPLETE`"" -ForegroundColor White
+Write-Host "/ralph-loop:ralph-loop `"$prompt`" --max-iterations $MaxCycles --completion-promise `"FORGE_COMPLETE`"" -ForegroundColor White
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor DarkGray
 
