@@ -281,6 +281,33 @@ Edit `.forge/config.json`:
 - Commits with `feat:` prefix
 - Refactoring is encouraged
 
+### Brief Mode
+Brief mode is for comprehensive feature builds driven by a detailed markdown brief instead of GitHub issues.
+
+```powershell
+# Create a brief from the template
+Copy-Item .forge/briefs/TEMPLATE.md .forge/briefs/my-feature.md
+
+# Edit the brief with your feature details
+# Then launch in brief mode
+.\launch-forge.ps1 -Mode brief -BriefPath ".forge/briefs/my-feature.md"
+```
+
+**Key differences:**
+- Reads from a local `.md` file instead of GitHub issues
+- Creates a **multi-task implementation plan** from the brief
+- Can run **multiple workers in parallel**
+- Tracks progress across tasks until the entire plan is complete
+- Each cycle processes one or more tasks, not one issue
+
+**Brief file structure:**
+```
+.forge/briefs/
+├── TEMPLATE.md           # Copy this to create new briefs
+├── user-authentication.md
+└── dashboard-redesign.md
+```
+
 ## Logging
 
 All events are logged as JSONL (one JSON object per line).

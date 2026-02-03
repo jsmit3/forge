@@ -5,7 +5,15 @@
       "Bash(grep:*)",
       "Bash(gh auth:*)",
       "Bash(git init:*)",
-      "Bash(gh repo create:*)"
+      "Bash(gh repo create:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "WebSearch",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:\\\\tools\\\\ralph-supervisor\\\\patch-ralph-hook.ps1\")",
+      "Bash(powershell -Command \"& { bash -c ''which jq perl 2>/dev/null; jq --version 2>/dev/null; perl --version 2>/dev/null | head -2'' }\")",
+      "Bash(choco install:*)",
+      "Bash(jq:*)"
     ]
   }
 }

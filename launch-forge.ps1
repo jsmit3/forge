@@ -27,8 +27,9 @@
 param(
     [int]$MaxCycles = 10,
     [switch]$Clean,
-    [ValidateSet("bug", "feature", "")]
-    [string]$Mode = ""
+    [ValidateSet("bug", "feature", "brief", "")]
+    [string]$Mode = "",
+    [string]$BriefPath = ""
 )
 
 $ErrorActionPreference = "Continue"
@@ -183,9 +184,22 @@ if (-not $effectiveMode) {
     }
 }
 
+# Validate brief mode requirements
+if ($effectiveMode -eq "brief") {
+    if (-not $BriefPath) {
+        Write-Host "[ERROR] Brief mode requires -BriefPath parameter" -ForegroundColor Red
+        Write-Host "  Example: .\launch-forge.ps1 -Mode brief -BriefPath '.forge/briefs/my-feature.md'" -ForegroundColor Yellow
+        exit 1
+    }
+    if (-not (Test-Path $BriefPath)) {
+        Write-Host "[ERROR] Brief file not found: $BriefPath" -ForegroundColor Red
+        exit 1
+    }
+}
+
 if (-not (Test-Path ".forge/state.json")) {
     $newState = @{
-        version = "1.1.0"
+        version = "1.2.0"
         last_updated = (Get-Date -Format "o")
         current_cycle = 0
         session_id = $sessionId
@@ -205,6 +219,25 @@ if (-not (Test-Path ".forge/state.json")) {
         last_decision = "Session initialized"
         blocked_reason = $null
     }
+
+    # Add brief-specific state if in brief mode
+    if ($effectiveMode -eq "brief") {
+        $newState.brief = @{
+            path = $BriefPath
+            title = $null
+            plan = $null
+            tasks = @()
+            progress = @{
+                total = 0
+                completed = 0
+                in_progress = 0
+                pending = 0
+                failed = 0
+                percentage = 0
+            }
+        }
+    }
+
     if (-not (Write-StateAtomic -State $newState)) {
         Write-Host "Failed to initialize state.json" -ForegroundColor Red
         exit 1
@@ -216,6 +249,27 @@ if (-not (Test-Path ".forge/state.json")) {
             $state = Get-Content ".forge/state.json" -Raw | ConvertFrom-Json
             $state.mode = $Mode
             $state.last_updated = (Get-Date -Format "o")
+
+            # Add brief-specific state if switching to brief mode
+            if ($Mode -eq "brief" -and -not $state.brief) {
+                $state | Add-Member -NotePropertyName "brief" -NotePropertyValue @{
+                    path = $BriefPath
+                    title = $null
+                    plan = $null
+                    tasks = @()
+                    progress = @{
+                        total = 0
+                        completed = 0
+                        in_progress = 0
+                        pending = 0
+                        failed = 0
+                        percentage = 0
+                    }
+                } -Force
+            } elseif ($Mode -eq "brief" -and $BriefPath) {
+                $state.brief.path = $BriefPath
+            }
+
             if (-not (Write-StateAtomic -State $state)) {
                 Write-Host "Failed to update mode in state.json" -ForegroundColor Red
                 exit 1
@@ -235,17 +289,43 @@ Write-Host "========================================================" -Foregroun
 Write-Host "         FORGE -- Session $sessionId" -ForegroundColor Cyan
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
-$modeColor = if ($effectiveMode -eq "bug") { "Yellow" } else { "Magenta" }
+
+# Mode-specific display
+$modeColor = switch ($effectiveMode) {
+    "bug"     { "Yellow" }
+    "feature" { "Magenta" }
+    "brief"   { "Cyan" }
+    default   { "White" }
+}
 Write-Host "Mode: " -NoNewline
 Write-Host $effectiveMode.ToUpper() -ForegroundColor $modeColor
+
+if ($effectiveMode -eq "brief") {
+    Write-Host "Brief: " -NoNewline
+    Write-Host $BriefPath -ForegroundColor Gray
+}
+
 Write-Host ""
 Write-Host "State initialized. Launching Claude Code..." -ForegroundColor Green
 Write-Host ""
 Write-Host "Paste this command once inside:" -ForegroundColor Yellow
 Write-Host ""
 
-$modeDesc = if ($effectiveMode -eq "bug") { "fix one bug" } else { "implement one feature" }
-$prompt = "You are the FORGE agent. Session: $sessionId. Mode: $effectiveMode. Read .forge/CLAUDE.md for your full instructions. Read .forge/config.json for configuration. Read .forge/state.json for current state. Execute ONE forge cycle ($modeDesc), then exit. When ALL issues are done, output <promise>FORGE_COMPLETE</promise>"
+# Build mode-specific prompt
+$modeDesc = switch ($effectiveMode) {
+    "bug"     { "fix one bug" }
+    "feature" { "implement one feature" }
+    "brief"   { "execute tasks from the implementation plan" }
+    default   { "process one item" }
+}
+
+$prompt = "You are the FORGE agent. Session: $sessionId. Mode: $effectiveMode. Read .forge/CLAUDE.md for your full instructions. Read .forge/config.json for configuration. Read .forge/state.json for current state."
+
+if ($effectiveMode -eq "brief") {
+    $prompt += " Brief path: $BriefPath. If no plan exists, read the brief and create a comprehensive implementation plan. Then execute tasks from the plan. Continue until all tasks are complete."
+} else {
+    $prompt += " Execute ONE forge cycle ($modeDesc), then exit. When ALL issues are done, output <promise>FORGE_COMPLETE</promise>"
+}
 
 Write-Host "/ralph-loop:ralph-loop `"$prompt`" --max-iterations $MaxCycles --completion-promise `"FORGE_COMPLETE`"" -ForegroundColor White
 Write-Host ""
