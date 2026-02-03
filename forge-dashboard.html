@@ -594,7 +594,9 @@ function updateScreenshots(events) {
     html += '<div class="screenshot-grid">';
 
     (v.data.screenshot_paths || []).forEach(p => {
-      const url = `/api/screenshots/.worktrees/issue-${issueNum}/${p}`;
+      // Screenshots are now stored in .forge/screenshots/issue-<N>/
+      // The path in the log may be relative or absolute
+      const url = p.startsWith('.forge/') ? `/api/screenshots/${p}` : `/api/screenshots/.forge/screenshots/issue-${issueNum}/${p.split('/').pop()}`;
       const label = p.split('/').pop();
       html += `<div class="screenshot-thumb" onclick="openLightbox('${url}')">
         <img src="${url}" alt="${label}" onerror="this.parentElement.innerHTML='<div class=\\'screenshot-label\\'>Image not available</div>'" loading="lazy">

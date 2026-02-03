@@ -625,17 +625,20 @@ test('verify issue #<NUMBER> fix: <short description>', async ({ page }) => {
   // ============================================================
   // PHASE 5: TAKE EVIDENCE SCREENSHOTS
   // ============================================================
+  // Screenshots are saved OUTSIDE the worktree so they survive cleanup
+  // and can be attached to the PR.
+  //
   // Full page for context
   await page.screenshot({
-    path: 'verification-screenshots/01-full-page.png',
+    path: '../../.forge/screenshots/issue-<NUMBER>/01-full-page.png',
     fullPage: true
   });
 
-  // Focused screenshot of the specific fixed element
+  // Focused screenshot of the specific fixed element (THIS IS THE KEY ONE FOR PR)
   const fixedElement = page.locator('<selector for the fixed element>');
   if (await fixedElement.isVisible()) {
     await fixedElement.screenshot({
-      path: 'verification-screenshots/02-fix-detail.png'
+      path: '../../.forge/screenshots/issue-<NUMBER>/02-fix-detail.png'
     });
   }
 
@@ -644,7 +647,7 @@ test('verify issue #<NUMBER> fix: <short description>', async ({ page }) => {
   // Example: click each tab and verify navigation
   //   await page.click('text=Settings');
   //   await expect(page).toHaveURL(/settings/);
-  //   await page.screenshot({ path: 'verification-screenshots/03-after-interaction.png' });
+  //   await page.screenshot({ path: '../../.forge/screenshots/issue-<NUMBER>/03-after-interaction.png' });
 });
 ```
 
@@ -675,8 +678,10 @@ export default defineConfig({
 #### 7d. Run the verification script
 
 ```bash
+# Create screenshot directory OUTSIDE the worktree (survives cleanup)
+mkdir -p .forge/screenshots/issue-<NUMBER>
+
 cd .worktrees/issue-<NUMBER>
-mkdir -p verification-screenshots
 npx playwright test verify-fix.spec.ts --reporter=list 2>&1
 VERIFY_EXIT=$?
 cd ../..
@@ -694,7 +699,7 @@ cd ../..
 
 **Step 1: List and view every screenshot:**
 ```bash
-ls .worktrees/issue-<NUMBER>/verification-screenshots/
+ls .forge/screenshots/issue-<NUMBER>/
 ```
 Then read/view each image file.
 
@@ -746,9 +751,9 @@ Log:
     "assertions_passed": true,
     "screenshots_taken": 3,
     "screenshot_paths": [
-      "verification-screenshots/01-full-page.png",
-      "verification-screenshots/02-fix-detail.png",
-      "verification-screenshots/03-after-interaction.png"
+      ".forge/screenshots/issue-42/01-full-page.png",
+      ".forge/screenshots/issue-42/02-fix-detail.png",
+      ".forge/screenshots/issue-42/03-after-interaction.png"
     ],
     "literal_description": "Screenshot 01 shows the Today screen with a green header, plant icon, and empty state message. At the bottom is a navigation bar with 6 tabs: Today, Progress, Templates, Garden, Science, Settings. Today tab is highlighted. Screenshot 02 shows a close-up of the navigation bar with all 6 tab icons and labels clearly visible.",
     "visual_assessment": "Navigation bar is present with all 6 expected tabs. Matches the expected behavior described in the bug report. Playwright assertions for tab count and visibility passed.",
@@ -791,27 +796,47 @@ All gates passed: code review, tests, and visual verification (if required). Cre
 - BUG MODE: `fix:`
 - FEATURE MODE: `feat:`
 
-If visual verification was performed, commit the screenshots:
+#### 8a. Push the branch
 
 ```bash
 cd .worktrees/issue-<NUMBER>
-
-# Only if screenshots exist
-if [ -d "verification-screenshots" ]; then
-  git add verification-screenshots/
-  git commit -m "chore: add visual verification screenshots for #<NUMBER>"
-fi
-
 git push origin fix/issue-<NUMBER>
-
 cd ../..
 ```
 
-Create the PR with the appropriate template:
+#### 8b. Select the best verification screenshot
 
-#### BUG MODE PR Template:
+Screenshots are stored in `.forge/screenshots/issue-<NUMBER>/`. Pick the **best one** that clearly shows the fix:
+- Prefer `02-fix-detail.png` (focused on the fixed element) if it exists and is clear
+- Fall back to `01-full-page.png` if the detail shot isn't available or clear
+
+```bash
+# Find the best screenshot to attach
+SCREENSHOT_DIR=".forge/screenshots/issue-<NUMBER>"
+if [ -f "$SCREENSHOT_DIR/02-fix-detail.png" ]; then
+  BEST_SCREENSHOT="$SCREENSHOT_DIR/02-fix-detail.png"
+elif [ -f "$SCREENSHOT_DIR/01-full-page.png" ]; then
+  BEST_SCREENSHOT="$SCREENSHOT_DIR/01-full-page.png"
+else
+  BEST_SCREENSHOT=""
+fi
+```
+
+#### 8c. Create the PR with embedded screenshot
+
+Use a data URL or upload the image. For GitHub PRs, the easiest approach is to reference the screenshot path and let GitHub render it, or describe what the screenshot shows.
+
+**BUG MODE PR Template:**
 ```bash
 cd .worktrees/issue-<NUMBER>
+
+# Build screenshot section if we have one
+SCREENSHOT_SECTION=""
+if [ -n "$BEST_SCREENSHOT" ]; then
+  SCREENSHOT_SECTION="### Verification Screenshot
+_Screenshot saved at: $BEST_SCREENSHOT_
+_(Visual verification confirmed the fix)_"
+fi
 
 gh pr create \
   --title "fix: <issue title> (closes #<NUMBER>)" \
@@ -833,11 +858,9 @@ gh pr create \
 ### Visual Verification
 - [x] App launched in worktree and visually inspected
 - [x] Bug fix confirmed via Playwright screenshot
-- Assessment: <what the screenshot shows>
+- Assessment: <what the screenshot shows - describe literally what you see>
 
-### Screenshots
-![Full Page](verification-screenshots/full-page.png)
-![Fix Detail](verification-screenshots/fix-detail.png)
+$SCREENSHOT_SECTION
 
 Closes #<NUMBER>
 
@@ -850,7 +873,7 @@ Closes #<NUMBER>
 cd ../..
 ```
 
-#### FEATURE MODE PR Template:
+**FEATURE MODE PR Template:**
 ```bash
 cd .worktrees/issue-<NUMBER>
 
@@ -877,12 +900,8 @@ gh pr create \
 ### Visual Verification
 <One of:>
 - [x] App launched and feature verified via Playwright screenshot
+  - Assessment: <what the screenshot shows>
 - [x] Skipped: backend-only feature with no UI impact
-
-<If screenshots exist:>
-### Screenshots
-![Full Page](verification-screenshots/full-page.png)
-![Feature Demo](verification-screenshots/fix-detail.png)
 
 Closes #<NUMBER>
 
@@ -894,6 +913,8 @@ Closes #<NUMBER>
 
 cd ../..
 ```
+
+**TIP:** After creating the PR, you can manually attach the screenshot by editing the PR on GitHub and dragging the image file from `.forge/screenshots/issue-<NUMBER>/` into the description.
 
 If `auto_merge` is true in config:
 ```bash

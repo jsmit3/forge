@@ -131,6 +131,7 @@ $dirs = @(
     ".forge/templates",
     ".forge/logs",
     ".forge/logs/workers",
+    ".forge/screenshots",
     ".worktrees"
 )
 
